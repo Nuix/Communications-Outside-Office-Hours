@@ -14,6 +14,8 @@ class CommunicationDateClassifier
 	attr_accessor :after_tag
 	attr_accessor :weekend_tag
 
+	attr_accessor :record_week_day
+
 	attr_accessor :message_logged_callback
 	attr_accessor :progress_callback
 
@@ -79,6 +81,8 @@ class CommunicationDateClassifier
 			6 => "SATURDAY",
 			7 => "SUNDAY",
 		}
+
+		@record_week_day = false
 	end
 
 	def on_message_logged(&block)
@@ -136,6 +140,8 @@ class CommunicationDateClassifier
 		classification_counts = Hash.new{|h,k| h[k] = 0}
 
 		items.each_with_index do |item,item_index|
+			tags = []
+
 			fire_progress(item_index+1,items.size)
 			communication = item.getCommunication
 			if communication.nil?
@@ -150,9 +156,13 @@ class CommunicationDateClassifier
 					zoned_communication_date = communication_date.withZone(@time_zone)
 					week_day_name = @week_day_names[zoned_communication_date.getDayOfWeek]
 
+					if @record_week_day
+						tags << [@parent_tag,week_day_name].reject{|t|t.nil? || t.strip.empty?}.join("|")
+					end
+
 					# Should we apply a weekend tag?
 					if @office_days[week_day_name] != true
-						tag = weekend_tag_final
+						tags << weekend_tag_final
 					else
 						# Does appear to be on a weekend so we test whether
 						# time is before, during or after normal office hours
@@ -162,21 +172,23 @@ class CommunicationDateClassifier
 						# We check first if is before office hours, then we check if after office hours, finally
 						# if not before or after then should be during
 						if hour_of_day < @start_hour || (hour_of_day == @start_hour && minute_of_hour < @start_minutes)
-							tag = before_tag_final
+							tags << before_tag_final
 						elsif hour_of_day > @end_hour || (hour_of_day == @end_hour && minute_of_hour > @end_minutes)
-							tag = after_tag_final
+							tags << after_tag_final
 						else
-							tag = during_tag_final
+							tags << during_tag_final
 						end
 					end
 
 					# Try to batch add tags a little bit so we get better performance
-					tag_batches[tag] << item
-					if tag_batches[tag].size >= 500
-						annotater.addTag(tag,tag_batches[tag])
-						log("Applied tag '#{tag}' to #{tag_batches[tag].size} items")
-						classification_counts[tag] += tag_batches[tag].size
-						tag_batches.delete(tag)
+					tags.each do |tag|
+						tag_batches[tag] << item
+						if tag_batches[tag].size >= 500
+							annotater.addTag(tag,tag_batches[tag])
+							log("Applied tag '#{tag}' to #{tag_batches[tag].size} items")
+							classification_counts[tag] += tag_batches[tag].size
+							tag_batches.delete(tag)
+						end
 					end
 				end
 			end

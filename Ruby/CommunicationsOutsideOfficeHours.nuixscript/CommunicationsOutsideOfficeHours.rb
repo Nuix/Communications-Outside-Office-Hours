@@ -61,6 +61,7 @@ main_tab.appendTextField("before_tag","Before Hours Tag","Before Office Hours")
 main_tab.appendTextField("after_tag","After Hours Tag","After Office Hours")
 main_tab.appendTextField("during_tag","During Hours Tag","During Office Hours")
 main_tab.appendTextField("weekend_tag","Weekend Tag","Weekend")
+main_tab.appendCheckBox("record_day_of_week","Record Day of Week",false)
 
 dialog.validateBeforeClosing do |values|
 	start_hour = 0
@@ -147,13 +148,14 @@ if dialog.getDialogResult == true
 	office_hours_start = values["office_hours_start"]
 	office_hours_end = values["office_hours_end"]
 	office_days = values["office_days"]
-	# Make office days into Hash
+	# Make office days array into Hash
 	office_days = office_days.map{|d| [d,true] }.to_h
 	parent_tag = values["parent_tag"]
 	before_tag = values["before_tag"]
 	during_tag = values["during_tag"]
 	after_tag = values["after_tag"]
 	weekend_tag = values["weekend_tag"]
+	record_day_of_week = values["record_day_of_week"]
 
 	# Show progress dialog while we do the main work
 	ProgressDialog.forBlock do |pd|
@@ -172,6 +174,7 @@ if dialog.getDialogResult == true
 		office_day_choices.each do |day_of_week|
 			classifier.office_days[day_of_week] = (office_days[day_of_week] == true)
 		end
+		classifier.record_week_day = record_day_of_week
 		
 		# Hookup progress to progress dialog
 		classifier.on_message_logged{|message| pd.logMessage(message)}
