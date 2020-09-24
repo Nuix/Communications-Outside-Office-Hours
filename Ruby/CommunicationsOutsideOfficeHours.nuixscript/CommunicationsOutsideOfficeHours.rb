@@ -100,7 +100,10 @@ dialog.validateBeforeClosing do |values|
 		next false
 	end
 
-	# Verify tags
+	# ===============================================
+	# Verify that all sub-tags have a non-empty value
+	# ===============================================
+
 	if values["before_tag"].strip.empty?
 		CommonDialogs.showWarning("'Before Hours Tag' cannot be empty")
 		next false
@@ -130,8 +133,10 @@ dialog.validateBeforeClosing do |values|
 	next true
 end
 
+# Show the settings dialog
 dialog.display
 
+# User clicked okay and all validations passed
 if dialog.getDialogResult == true
 	values = dialog.toMap
 
@@ -139,19 +144,43 @@ if dialog.getDialogResult == true
 	office_hours_start = values["office_hours_start"]
 	office_hours_end = values["office_hours_end"]
 	office_days = values["office_days"]
+	parent_tag = values["parent_tag"]
 	before_tag = values["before_tag"]
 	during_tag = values["during_tag"]
 	after_tag = values["after_tag"]
 	weekend_tag = values["weekend_tag"]
 
+	# Show progress dialog while we do the main work
 	ProgressDialog.forBlock do |pd|
 		pd.setAbortButtonVisible(false)
 		pd.setTitle("Communications Outside Office Hours")
 		pd.onMessageLogged{|message| puts message}
+		
+		# Create comms classifier and configure tags based
+		# on settings provided by user
 		classifier = CommunicationDateClassifier.new(time_zone,office_hours_start,office_hours_end)
-		pd.logMessage(classifier.to_s)
+		classifier.parent_tag = parent_tag
+		classifier.before_tag = before_tag
+		classifier.during_tag = during_tag
+		classifier.after_tag = after_tag
+		classifier.weekend_tag = weekend_tag
+		
+		# Hookup progress to progress dialog
 		classifier.on_message_logged{|message| pd.logMessage(message)}
+		classifier.on_progress do |current,total|
+			pd.setMainProgress(current,total)
+			if current % 1000 == 0
+				pd.setMainStatus("#{current}/#{total}")
+			end
+		end
+
+		# Log the settings we will be using
+		pd.logMessage(classifier.to_s)
+		
+		# Perform classification
 		classifier.classify_items($current_selected_items)
+		
+		# Set dialog to completed
 		pd.setCompleted
 	end
 end

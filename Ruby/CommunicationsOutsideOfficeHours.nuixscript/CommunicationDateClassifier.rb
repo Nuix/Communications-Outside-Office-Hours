@@ -8,13 +8,14 @@ class CommunicationDateClassifier
 
 	attr_accessor :office_days
 
-	attr_accessor :root_tag
+	attr_accessor :parent_tag
 	attr_accessor :before_tag
 	attr_accessor :during_tag
 	attr_accessor :after_tag
 	attr_accessor :weekend_tag
 
 	attr_accessor :message_logged_callback
+	attr_accessor :progress_callback
 
 	# Parses input time string such as "09:00" into an hours part (9) and
 	# a minutes part (0).  Expects hours to be specified in 24 hour time
@@ -53,7 +54,7 @@ class CommunicationDateClassifier
 		@start_hour,@start_minutes = CommunicationDateClassifier.parse_hour_minutes_string(from)
 		@end_hour,@end_minutes = CommunicationDateClassifier.parse_hour_minutes_string(to)
 
-		@root_tag = "Office Hours"
+		@parent_tag = "Office Hours"
 		@before_tag = "Before Office Hours"
 		@during_tag = "During Office Hours"
 		@after_tag = "After Office Hours"
@@ -84,11 +85,21 @@ class CommunicationDateClassifier
 		@message_logged_callback = block
 	end
 
+	def on_progress(&block)
+		@progress_callback = block
+	end
+
 	def log(message)
 		if !@message_logged_callback.nil?
 			@message_logged_callback.call(message)
 		else
 			puts message
+		end
+	end
+
+	def fire_progress(current,total)
+		if !@progress_callback.nil?
+			@progress_callback.call(current,total)
 		end
 	end
 
@@ -113,41 +124,58 @@ class CommunicationDateClassifier
 		tag_batches = Hash.new{|h,k| h[k] = []}
 		annotater = $utilities.getBulkAnnotater
 
-		items.each do |item|
+		# Build final tags up front (parent|child), logic is so that parent tag can be blank/nil
+		# and we still build a usable tag
+		before_tag_final = [@parent_tag,@before_tag].reject{|t|t.nil? || t.strip.empty?}.join("|")
+		after_tag_final = [@parent_tag,@after_tag].reject{|t|t.nil? || t.strip.empty?}.join("|")
+		during_tag_final = [@parent_tag,@during_tag].reject{|t|t.nil? || t.strip.empty?}.join("|")
+		weekend_tag_final = [@parent_tag,@weekend_tag].reject{|t|t.nil? || t.strip.empty?}.join("|")
+
+		# We will track how many of each tag we applied so we can report
+		# this to user at the end of the process
+		classification_counts = Hash.new{|h,k| h[k] = 0}
+
+		items.each_with_index do |item,item_index|
+			fire_progress(item_index+1,items.size)
 			communication = item.getCommunication
-			if !communication.nil?
+			if communication.nil?
+				# Record this item had no communication
+				classification_counts["Not Communication"] += 1
+			else
 				communication_date = communication.getDateTime
-				if !communication_date.nil?
-					sub_tag = nil
+				if communication_date.nil?
+					# Record this item had no comm date
+					classification_counts["No Communication Date"] += 1
+				else
 					zoned_communication_date = communication_date.withZone(@time_zone)
 					week_day_name = @week_day_names[zoned_communication_date.getDayOfWeek]
 
 					# Should we apply a weekend tag?
 					if @office_days[week_day_name] != true
-						sub_tag = @weekend_tag
+						tag = weekend_tag_final
 					else
 						# Does appear to be on a weekend so we test whether
 						# time is before, during or after normal office hours
 						hour_of_day = zoned_communication_date.getHourOfDay
 						minute_of_hour = zoned_communication_date.getMinuteOfHour
 
+						# We check first if is before office hours, then we check if after office hours, finally
+						# if not before or after then should be during
 						if hour_of_day < @start_hour || (hour_of_day == @start_hour && minute_of_hour < @start_minutes)
-							sub_tag = @before_tag
+							tag = before_tag_final
 						elsif hour_of_day > @end_hour || (hour_of_day == @end_hour && minute_of_hour > @end_minutes)
-							sub_tag = @after_tag
+							tag = after_tag_final
 						else
-							sub_tag = during_tag
+							tag = during_tag_final
 						end
 					end
 
-					tag = [root_tag,sub_tag].reject{|t|t.nil? ||t.strip.empty?}.join("|")
-
 					# Try to batch add tags a little bit so we get better performance
 					tag_batches[tag] << item
-					if tag_batches[tag].size >= 100
+					if tag_batches[tag].size >= 500
 						annotater.addTag(tag,tag_batches[tag])
-						guids = tag_batches[tag].map{|i|i.getGuid}.join("\n")
-						log("Applied tag '#{tag}' to:\n#{guids}\n")
+						log("Applied tag '#{tag}' to #{tag_batches[tag].size} items")
+						classification_counts[tag] += tag_batches[tag].size
 						tag_batches.delete(tag)
 					end
 				end
@@ -157,9 +185,15 @@ class CommunicationDateClassifier
 		# Make sure to tag anything left in tag_batches
 		tag_batches.each do |tag,items|
 			annotater.addTag(tag,items)
-			guids = tag_batches[tag].map{|i|i.getGuid}.join("\n")
-			log("Applied tag '#{tag}' to:\n#{guids}\n")
+			log("Applied tag '#{tag}' to #{items.size} items")
+			classification_counts[tag] += items.size
 			tag_batches.delete(tag)
+		end
+
+		# Report final counts
+		log("Items Processed: #{items.size}")
+		classification_counts.each do |classification,count|
+			log("#{classification}: #{count}")
 		end
 	end
 end
@@ -177,7 +211,7 @@ comm_time_classifier = CommunicationDateClassifier.new("America/Los_Angeles","07
 comm_time_classifier.office_days["MONDAY"] = false
 
 # Customize the root tag
-comm_time_classifier.root_tag = "Custom Office Hours"
+comm_time_classifier.parent_tag = "Custom Office Hours"
 
 # Define sub-tags
 comm_time_classifier.before_tag = "Suspiciously Early"
