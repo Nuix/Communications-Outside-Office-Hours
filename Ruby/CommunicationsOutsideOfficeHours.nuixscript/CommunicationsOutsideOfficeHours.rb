@@ -44,6 +44,7 @@ default_time_zone_id = DateTimeZone.getDefault.getID
 
 dialog = TabbedCustomDialog.new("Communications Outside Office Hours")
 dialog.enableStickySettings(File.join(script_directory,"Settings.json"))
+dialog.setHelpUrl("https://github.com/Nuix/Communications-Outside-Office-Hours")
 
 main_tab = dialog.addTab("maintab","Main")
 
