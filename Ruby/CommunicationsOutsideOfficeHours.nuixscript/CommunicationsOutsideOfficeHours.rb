@@ -40,7 +40,7 @@ default_office_days = [
 ]
 
 time_zone_id_choices = DateTimeZone.getAvailableIDs
-default_time_zone_id = DateTimeZone.getDefault.getID
+default_time_zone_id = $current_case.getInvestigationTimeZone
 
 dialog = TabbedCustomDialog.new("Communications Outside Office Hours")
 dialog.enableStickySettings(File.join(script_directory,"Settings.json"))
@@ -147,6 +147,8 @@ if dialog.getDialogResult == true
 	office_hours_start = values["office_hours_start"]
 	office_hours_end = values["office_hours_end"]
 	office_days = values["office_days"]
+	# Make office days into Hash
+	office_days = office_days.map{|d| [d,true] }.to_h
 	parent_tag = values["parent_tag"]
 	before_tag = values["before_tag"]
 	during_tag = values["during_tag"]
@@ -167,6 +169,9 @@ if dialog.getDialogResult == true
 		classifier.during_tag = during_tag
 		classifier.after_tag = after_tag
 		classifier.weekend_tag = weekend_tag
+		office_day_choices.each do |day_of_week|
+			classifier.office_days[day_of_week] = (office_days[day_of_week] == true)
+		end
 		
 		# Hookup progress to progress dialog
 		classifier.on_message_logged{|message| pd.logMessage(message)}
