@@ -45,19 +45,21 @@ default_time_zone_id = DateTimeZone.getDefault.getID
 dialog = TabbedCustomDialog.new("Communications Outside Office Hours")
 dialog.enableStickySettings(File.join(script_directory,"Settings.json"))
 
-office_hours_tab = dialog.addTab("office_hours_tab","Office Hours/Days")
-office_hours_tab.appendComboBox("time_zone","Office Hours Time Zone",time_zone_id_choices)
-office_hours_tab.setText("time_zone",default_time_zone_id)
-office_hours_tab.appendTextField("office_hours_start","Office Hours Start (24 hour HH:MM)","09:00")
-office_hours_tab.appendTextField("office_hours_end","Office Hours End (24 hour HH:MM)","17:00")
-office_hours_tab.appendMultipleChoiceComboBox("office_days","Office Days",office_day_choices,default_office_days)
+main_tab = dialog.addTab("maintab","Main")
 
-tags_tab = dialog.addTab("tags_tab","Tags")
-tags_tab.appendTextField("parent_tag","Parent Tag (can be blank)","Office Hours")
-tags_tab.appendTextField("before_tag","Before Hours Tag","Before Office Hours")
-tags_tab.appendTextField("after_tag","After Hours Tag","After Office Hours")
-tags_tab.appendTextField("during_tag","During Hours Tag","During Office Hours")
-tags_tab.appendTextField("weekend_tag","Weekend Tag","Weekend")
+main_tab.appendHeader("Office Hours/Days")
+main_tab.appendComboBox("time_zone","Office Hours Time Zone",time_zone_id_choices)
+main_tab.setText("time_zone",default_time_zone_id)
+main_tab.appendTextField("office_hours_start","Office Hours Start (24 hour HH:MM)","09:00")
+main_tab.appendTextField("office_hours_end","Office Hours End (24 hour HH:MM)","17:00")
+main_tab.appendMultipleChoiceComboBox("office_days","Office Days",office_day_choices,default_office_days)
+
+main_tab.appendHeader("Tags")
+main_tab.appendTextField("parent_tag","Parent Tag (can be blank)","Office Hours")
+main_tab.appendTextField("before_tag","Before Hours Tag","Before Office Hours")
+main_tab.appendTextField("after_tag","After Hours Tag","After Office Hours")
+main_tab.appendTextField("during_tag","During Hours Tag","During Office Hours")
+main_tab.appendTextField("weekend_tag","Weekend Tag","Weekend")
 
 dialog.validateBeforeClosing do |values|
 	start_hour = 0
