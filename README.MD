@@ -7,7 +7,11 @@ View the GitHub project [here](https://github.com/Nuix/Communications-Outside-Of
 
 # Overview
 
-TODO
+This script analyzes the communication date of items which are a communication (e.g. an email).  You define offices hours by a start and stop time and which days of the week the office is open.  The script analyzes the communication dates and then tags the items with several categories:
+- Before Office Hours
+- During Office Hours
+- After Office Hours
+- During the Weekend
 
 # Getting Started
 
@@ -18,9 +22,19 @@ Begin by downloading the latest release of this code.  Extract the contents of t
 - `%appdata%\Nuix\Scripts` - User level script directory
 - `%programdata%\Nuix\Scripts` - System level script directory
 
-# Usage
+# Settings
 
-[PROJECT_USAGE_SECTIONS]
+- **Office Hours Time Zone**: The time zone the office hours start and stop times are specified in.  Communication date values are converted to this timezone before analysis is performed on them.
+- **Office Hours Start**: A 24-hour formatted time (e.g. `05:45` for `5:45 AM`) that defines the beginning of office hours.
+- **Office Hours End**: A 24-hour formatted time (e.g. `17:45` for `5:45 PM`) that defines the ending of office hours.
+- **Office Days**: Which days of the week are considered days the office is open.  Dates that fall on days of the week which are not checked will be considered weekends.
+
+- **Parent Tag**: Parent tag which all classification tags will be nested under.  Value can be blank.  If blank, classification tags will not be nested under any tag.
+- **Before Hours Tag**: Nested tag applied to items found to be *Before Office Hours*.
+- **After Hours Tag**: Nested tag applied to items found to be *After Office Hours*.
+- **During Hours Tag**: Nested tag applied to items found to be *During Office Hours*.
+- **Weekend Tag**: Nested tag applied to items found to be on the Weekend (not on one of the selected **Office Days**).
+- **Record Day of Week**: Applies a nested tag to each item with the name of the day of the week the communication date falls on.
 
 # Cloning this Repository
 
@@ -29,6 +43,33 @@ This script relies on code from [Nx](https://github.com/Nuix/Nx) to present a se
 2. Downloading an already built JAR file from the [Nx releases](https://github.com/Nuix/Nx/releases)
 
 Once you have a copy of Nx.jar, make sure to include it in the same directory as the script.
+
+# Icon License
+
+```
+Silk icon set 1.3
+
+_________________________________________
+Mark James
+http://www.famfamfam.com/lab/icons/silk/
+_________________________________________
+
+This work is licensed under a
+Creative Commons Attribution 2.5 License.
+[ http://creativecommons.org/licenses/by/2.5/ ]
+
+This means you may use it for any purpose,
+and make any changes you like.
+All I ask is that you include a link back
+to this page in your credits.
+
+Are you using this icon set? Send me an email
+(including a link or picture if available) to
+mjames@gmail.com
+
+Any other questions about this icon set please
+contact mjames@gmail.com
+```
 
 # License
 
